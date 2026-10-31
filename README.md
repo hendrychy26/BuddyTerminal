@@ -30,3 +30,7 @@ snapshots only, so the numbers here are as of the timestamp on the page.
   replaces it.
 - Data source: real Bybit USDT perpetuals via the owner's Jakarta VPS.
   Funding is shown per 8h-equivalent.
+
+## Pages
+
+Pages enabled 2026-11-01, source main / (root). Site: https://hendrychy26.github.io/BuddyTerminal/
