@@ -3,46 +3,98 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Buddy Terminal — Paper Only</title>
+<title>Buddy Terminal — Snapshot</title>
 <style>
-body{background:#0d1117;color:#e6edf3;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;margin:0;padding:20px}
-h1{font-size:22px;margin:0 0 4px} p.muted{color:#8b949e;margin:4px 0 16px}
-.card{background:#161b22;border:1px solid #30363d;border-radius:10px;padding:14px;margin:12px 0}
-table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:6px 8px;border-bottom:1px solid #30363d;font-size:14px}
-.pass{color:#3fb950} .fail{color:#f85149} .warn{color:#d29922}
-button{background:#238636;color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
-a{color:#58a6ff}
+  body { background:#0d1117; color:#e6edf3; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin:0; padding:24px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:14px; color:#58a6ff; border-bottom:1px solid #30363d; padding-bottom:6px; margin-top:28px; }
+  .sub { color:#8b949e; font-size:13px; margin-bottom:20px; }
+  .warn { background:#161b22; border:1px solid #30363d; border-left:4px solid #d29922; padding:10px 14px; font-size:13px; margin-bottom:20px; }
+  table { border-collapse:collapse; width:100%; font-size:13px; margin:8px 0; }
+  th { text-align:left; color:#8b949e; border-bottom:1px solid #30363d; padding:6px 8px; }
+  td { border-bottom:1px solid #21262d; padding:6px 8px; }
+  .neg { color:#f778ba; }
+  .pos { color:#3fb950; }
+  .dim { color:#8b949e; }
+  .pill { display:inline-block; border:1px solid #30363d; border-radius:12px; padding:2px 10px; font-size:12px; }
+  .ok { color:#3fb950; }
+  .no { color:#d29922; }
+  .foot { color:#8b949e; font-size:12px; margin-top:28px; border-top:1px solid #30363d; padding-top:12px; }
 </style>
 </head>
 <body>
-<h1>Buddy Terminal 🎯</h1>
-<p class="muted">Paper / dry-run only. No live trading, no keys. Market data below is fetched live from Bybit public API when you open this page. The paper book is a snapshot from <span id="snapshot">loading…</span>, not a live exchange account.</p>
-<button onclick="loadLive()">Refresh live market</button>
-<div class="card"><h2>BTC — live from Bybit</h2><div id="btc">loading…</div></div>
-<div class="card"><h2>Old paper book — official scoreboard</h2><div id="book">loading…</div></div>
-<div class="card"><h2>Open paper positions</h2><div id="open">loading…</div></div>
-<div class="card"><h2>Scanner — funding extremes (snapshot)</h2><div id="scan">loading…</div></div>
-<div class="card"><h2>Analyst candidates — NO TRADE at market unless a confirmed close trigger fires in chat</h2><div id="cand">loading…</div></div>
-<div class="card"><h2>Risk gate</h2><p>Vol ≥ $10M, OI ≥ $1M, range-proxy R:R ≥ 1.5, pure crypto only. Paper executor in this version is dry-run only and writes no trade.</p>
-<p>Small-$5: stopped / archived, bank $500, 0 trades, monitor off. It is not an active book.</p>
-<p>Validation gates: a strategy needs a backtest with ≥100 trades, both walk-forward halves positive, then ≥50 paper trades with positive expectancy, before any manual live pilot discussion. No strategy here has passed those gates as a live system.</p></div>
-<script>
-async function loadLive(){
-  try{
-    const r=await fetch('https://api.bybit.com/v5/market/tickers?category=linear&symbol=BTCUSDT');
-    const j=await r.json(); const t=j.result.list[0];
-    document.getElementById('btc').textContent='BTCUSDT last '+t.lastPrice+'  24h '+t.price24hPcnt+'  funding '+t.fundingRate;
-  }catch(e){document.getElementById('btc').textContent='Live BTC fetch failed, see snapshot below.'}
-}
-async function loadSnap(){
-  const d=await (await fetch('data.json')).json();
-  document.getElementById('snapshot').textContent=d.generated_wib;
-  document.getElementById('book').innerHTML='Cash $'+d.portfolio.old_book_cash.toFixed(2)+' · Closed trades '+d.portfolio.old_book_trades_closed+' · BTC snapshot $'+d.btc.last+' ('+d.btc.chg_24h_pct+'% 24h)';
-  document.getElementById('open').innerHTML='<table><tr><th>Symbol</th><th>Side</th><th>Entry</th><th>Last</th><th>PnL %</th><th>Funding /8h-eq</th><th>Faded &lt;0.08</th></tr>'+d.monitor.old_book_open.map(p=>'<tr><td>'+p.symbol+'</td><td>'+p.side+'</td><td>'+p.entry+'</td><td>'+p.last+'</td><td>'+p.pnl_pct+'</td><td>'+p.funding_8h_eq_pct+'</td><td>'+p.funding_faded_below_0.08+'</td></tr>').join('')+'</table>';
-  document.getElementById('scan').innerHTML='<table><tr><th>Symbol</th><th>Funding /8h-eq %</th><th>24h %</th><th>Vol $M</th></tr>'+d.scanner.funding_extremes.map(s=>'<tr><td>'+s.symbol+'</td><td>'+s.funding_8h_eq_pct+'</td><td>'+s.chg_24h_pct+'</td><td>'+s.vol_usd_m+'</td></tr>').join('')+'</table>';
-  document.getElementById('cand').innerHTML='<table><tr><th>Symbol</th><th>Completed close</th><th>Funding</th><th>Risk</th></tr>'+d.analyst_candidates.map(c=>'<tr><td>'+c.symbol+'</td><td>'+c.last_completed_close+'</td><td>'+c.funding_8h_eq_pct+'</td><td class="'+(c.risk_pass?'pass':'fail')+'">'+(c.risk_pass?'PASS':'FAIL')+'</td></tr>').join('')+'</table>';
-}
-loadLive(); loadSnap();
-</script>
+<h1>🎯 Buddy Terminal — Command Center Snapshot</h1>
+<div class="sub">Snapshot as of 31 Oct 2026, 23:55 WIB. Scanner data from the 23:43 WIB terminal refresh. Paper only. No live trading, no keys.</div>
+
+<div class="warn"><b>Read this first:</b> every number here is paper or dry-run. Nothing on this page is a live position, a live order, or a trade instruction. A candidate marked NO TRADE at market means exactly that — a real call still needs a confirmed close trigger in chat.</div>
+
+<h2>Market — BTC</h2>
+<p>BTC <b>$77,535.9</b> <span class="pos">+0.18% 24h</span> <span class="dim">(23:43 WIB scan)</span></p>
+
+<h2>Agents</h2>
+<table>
+<tr><th>Agent</th><th>Status</th><th>Notes</th></tr>
+<tr><td>1 Scanner</td><td><span class="pill ok">live</span></td><td>51 liquid pure-crypto perps (vol ≥ $10M), Bybit data via VPS</td></tr>
+<tr><td>2 Analyst</td><td><span class="pill ok">live</span></td><td>1H EMA/ATR/range rule scan — all 5 candidates NO TRADE at market</td></tr>
+<tr><td>3 Risk</td><td><span class="pill ok">live</span></td><td>Gate: vol ≥ $10M, OI ≥ $1M, range-proxy R:R ≥ 1.5, pure crypto only</td></tr>
+<tr><td>4 Paper Executor</td><td><span class="pill no">DRY-RUN ONLY</span></td><td>Writes nothing to any book. Needs a confirmed close trigger in chat first.</td></tr>
+<tr><td>5 Monitor</td><td><span class="pill ok">live</span></td><td>Open paper positions + funding-faded flag (below 0.08%/8h)</td></tr>
+<tr><td>6 Portfolio</td><td><span class="pill ok">live</span></td><td>Old paper book = official scoreboard. Small-$5 archived (stopped).</td></tr>
+</table>
+
+<h2>Portfolio — old paper book (official scoreboard)</h2>
+<p>Cash <b>$397.32</b> · Closed trades <b>130</b> <span class="dim">(verified 23:55 WIB)</span></p>
+<p class="dim">Journal as of 23:43 WIB: total net −$95.23 · win rate 34.1% · avg net −$0.74 · funding P&amp;L +$212.26 · price P&amp;L −$299.59. 23:55 update: SOPH short closed on funding normalisation (+$1.05), lifting cash to $397.32 and closed trades to 130.</p>
+<table>
+<tr><th>Open position</th><th>Side</th><th>Entry</th><th>Last (23:43)</th><th>P&amp;L</th><th>Funding /8h</th></tr>
+<tr><td>QUSDT</td><td>long</td><td>0.03339</td><td>0.03164</td><td class="neg">−5.24%</td><td class="neg">−0.72%</td></tr>
+<tr><td>WETUSDT</td><td>long</td><td>0.05888</td><td>0.05908</td><td class="pos">+0.34%</td><td class="neg">−0.37%</td></tr>
+<tr><td>COWUSDT</td><td>long</td><td>0.13696</td><td>0.13446</td><td class="neg">−1.83%</td><td class="neg">−1.65%</td></tr>
+</table>
+<p class="dim">Small-$5 book: stopped 31 Oct 2026 23:11 WIB at the owner's request. Bank $500.00, 0 trades, monitor off. It never traded.</p>
+
+<h2>Scanner — funding extremes (23:43 WIB, %/8h-eq)</h2>
+<table>
+<tr><th>Symbol</th><th>Funding</th><th>24h</th><th>Volume</th></tr>
+<tr><td>COWUSDT</td><td class="neg">−1.65%</td><td class="pos">+23.00%</td><td>$10.6M</td></tr>
+<tr><td>QUSDT</td><td class="neg">−0.72%</td><td class="neg">−34.92%</td><td>$45.9M</td></tr>
+<tr><td>WETUSDT</td><td class="neg">−0.37%</td><td class="pos">+14.21%</td><td>$15.1M</td></tr>
+<tr><td>JCTUSDT</td><td class="pos">+0.16%</td><td class="neg">−9.84%</td><td>$13.5M</td></tr>
+<tr><td>NILUSDT</td><td class="neg">−0.13%</td><td class="neg">−6.12%</td><td>$13.1M</td></tr>
+<tr><td>BTWUSDT</td><td class="neg">−0.13%</td><td class="neg">−5.02%</td><td>$14.4M</td></tr>
+<tr><td>LSKUSDT</td><td class="neg">−0.12%</td><td class="pos">+38.02%</td><td>$89.9M</td></tr>
+<tr><td>XMRUSDT</td><td class="pos">+0.10%</td><td class="neg">−0.29%</td><td>$27.6M</td></tr>
+</table>
+
+<h2>Analyst candidates (23:43 WIB rule scan)</h2>
+<table>
+<tr><th>Symbol</th><th>Risk gate</th><th>Range-proxy R:R</th><th>Verdict</th></tr>
+<tr><td>QUSDT</td><td class="pos">pass</td><td>4.91</td><td>NO TRADE at market (terminal rule scan only)</td></tr>
+<tr><td>JCTUSDT</td><td class="pos">pass</td><td>4.14</td><td>NO TRADE at market (terminal rule scan only)</td></tr>
+<tr><td>COWUSDT</td><td class="neg">fail</td><td>0.49</td><td>NO TRADE at market (terminal rule scan only)</td></tr>
+<tr><td>WETUSDT</td><td class="neg">fail</td><td>0.64</td><td>NO TRADE at market (terminal rule scan only)</td></tr>
+<tr><td>NILUSDT</td><td class="neg">fail</td><td>0.70</td><td>NO TRADE at market (terminal rule scan only)</td></tr>
+</table>
+<p class="dim">Dry-run only: QUSDT, JCTUSDT — would still need a confirmed close trigger + TP-before-resistance + SL-cap check in chat before any paper entry. No trade written.</p>
+
+<h2>Recent closed paper trades</h2>
+<table>
+<tr><th>Symbol</th><th>Side</th><th>Entry → Exit</th><th>Hold</th><th>Net</th><th>Reason</th></tr>
+<tr><td>BLURUSDT</td><td>long</td><td>0.008926 → 0.008676</td><td>1.0h</td><td class="neg">−$2.62</td><td>funding normalized</td></tr>
+<tr><td>DOODUSDT</td><td>long</td><td>0.002071 → 0.001915</td><td>5.5h</td><td class="neg">−$6.95</td><td>funding normalized</td></tr>
+<tr><td>SOPHUSDT</td><td>long</td><td>0.001543 → 0.001562</td><td>1.5h</td><td class="pos">+$0.98</td><td>funding normalized</td></tr>
+<tr><td>LSKUSDT</td><td>long</td><td>0.23635 → 0.21602</td><td>7.0h</td><td class="neg">−$7.08</td><td>stop-loss</td></tr>
+<tr><td>QUSDT</td><td>long</td><td>0.03124 → 0.03287</td><td>5.5h</td><td class="pos">+$6.94</td><td>funding normalized</td></tr>
+<tr><td>NILUSDT</td><td>long</td><td>0.06917 → 0.07193</td><td>0.5h</td><td class="pos">+$3.57</td><td>funding normalized</td></tr>
+<tr><td>AKEUSDT</td><td>long</td><td>0.010705 → 0.010484</td><td>2.0h</td><td class="neg">−$1.95</td><td>funding normalized</td></tr>
+<tr><td>QUSDT</td><td>long</td><td>0.03322 → 0.03209</td><td>2.5h</td><td class="neg">−$3.09</td><td>funding normalized</td></tr>
+<tr><td>LSKUSDT</td><td>long</td><td>0.21602 → 0.29394</td><td>7.0h</td><td class="pos">+$34.73</td><td>funding normalized</td></tr>
+<tr><td>WETUSDT</td><td>long</td><td>0.06401 → 0.05888</td><td>5.5h</td><td class="neg">−$6.59</td><td>stop-loss</td></tr>
+</table>
+
+<div class="foot">
+<p>This page is a snapshot, not a live feed. It updates only when a new snapshot is pushed. The live command center runs in Muse and refreshes every 30 minutes; the funding-fade paper loop runs on its own 30-minute schedule whether or not this page is open.</p>
+<p>Data: real Bybit USDT perps via the owner's Jakarta VPS. Funding shown per 8h-equivalent. Fees: Bybit non-VIP taker 0.055%. Nothing here is financial advice.</p>
+</div>
 </body>
 </html>
